@@ -33,6 +33,7 @@ solution
         muc          cell;
 	p		cell;
        // alpha.water       cell;
+	curlUcDt	cellPointFace;
     }
 
     //averagingMethod dual;
@@ -67,6 +68,7 @@ subModels
         //}
 	sphereDrag;
         gravity;
+	SaffmanMeiLiftForce{};
     }
 
     injectionModels
