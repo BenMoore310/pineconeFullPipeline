@@ -74,12 +74,13 @@ subModels
 	p1
 	{
             type            manualInjection;
-            massTotal       0.0004769;
+            massTotal       0.000380359;
             SOI             502;
-            parcelBasisType fixed;
+            parcelBasisType mass;
 	    U0              (0.34265 0 0);
 	    nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
 	    {
 		type	fixedValue;
@@ -93,14 +94,14 @@ subModels
 	p2
         {
             type            manualInjection;
-            massTotal       0.0002265;
+            massTotal       4.75448e-5;
             //massFlowRate       0.0002265;
             SOI             503;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
-	    
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -113,13 +114,14 @@ subModels
         p3
         {
             type            manualInjection;
-            massTotal       0.00003863;
+            massTotal       1.02697e-5;
             //massFlowRate       0.0003863;
             SOI             504;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -132,13 +134,14 @@ subModels
         p4
         {
             type            manualInjection;
-            massTotal       0.00001015;
+            massTotal       4.05006e-6;
             //massFlowRate       0.0001015;
             SOI             505;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -151,14 +154,14 @@ subModels
         p5
         {
             type            manualInjection;
-            massTotal       1.931e-6;
+            massTotal       1.28371e-6;
             //massFlowRate       1.931e-5;
             SOI             506;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;     
             positionsFile	positions.dat;
-	    
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -171,13 +174,14 @@ subModels
         p6
         {
             type            manualInjection;
-            massTotal       6.817e-7;
+            massTotal       4.53013e-7;
             //massFlowRate       6.817e-6;
             SOI             507;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;     
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
             sizeDistribution
             {
                 type    fixedValue;
@@ -190,12 +194,13 @@ subModels
         p7
         {
             type            manualInjection;
-            massTotal       1.057e-7;
+            massTotal       1.05423e-7;
             SOI             508;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;    
             positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -208,13 +213,14 @@ subModels
         p8
         {
             type            manualInjection;
-            massTotal       3.2865e-8;
+            massTotal       2.89928e-8;
             SOI             509;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             //flowRateProfile constant 1;
 	    nParticle		2193;
             positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -228,13 +234,14 @@ subModels
         p9
         {
             type            manualInjection;
-            massTotal       5.962e-9;
+            massTotal       5.9431e-9;
             //massFlowRate       5.962e-8;
             SOI             510;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -247,13 +254,14 @@ subModels
         p10
         {
             type            manualInjection;
-            massTotal       1.614e-9;
+            massTotal       2.14513e-9;
             //massFlowRate       1.614e-8;
             SOI             511;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -266,13 +274,14 @@ subModels
         p11
         {
             type            manualInjection;
-            massTotal       1.0002e-9;
+            massTotal       7.9767e-10;
             //massFlowRate       1.0002e-8;
             SOI             512;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -285,13 +294,14 @@ subModels
         p12
         {
             type            manualInjection;
-            massTotal       1.213e-10;
+            massTotal       2.41929e-10;
             //massFlowRate       1.213e-9;
             SOI             513;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -304,13 +314,14 @@ subModels
         p13
         {
             type            manualInjection;
-            massTotal       1.9197e-10;
+            massTotal       1.09352e-10;
             //massFlowRate       1.9197e-9;
             SOI             514;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
@@ -323,13 +334,14 @@ subModels
         p14
         {
             type            manualInjection;
-            massTotal       1.0059e-11;
+            massTotal       6.68518e-12;
             //massFlowRate       1.0059e-10;
             SOI             515;
-            parcelBasisType fixed;
+            parcelBasisType mass;
             U0              (0.34265 0 0);
             nParticle		2193;
 	    positionsFile	positions.dat;
+	    uniformParcelSize	1;
 	    sizeDistribution
             {
                 type    fixedValue;
