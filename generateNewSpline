@@ -1,0 +1,6 @@
+python3.11 betaCDF.py --num_basis 2 --resolution 50 --inputFile betaParams.txt
+
+gnuplot -persist <<EOF
+set terminal dumb 50 25
+plot 'spline.txt' with linespoints
+EOF

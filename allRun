@@ -1,0 +1,44 @@
+
+/lustre/home/bm424/SALOME-9.11.0/salome -t fullGeometryWithHoodsFinal.py > log.geomCreation
+
+# //cp -r /home/bm424/Projects/Catmull-Clark/stlGroupsNew .
+
+mv stlGroupsNew/fullHood.stl .
+
+cat stlGroupsNew/*.stl > fullGeo.stl
+
+scaleSurfaceMesh fullGeo.stl fullGeoScaled.stl 0.0254
+scaleSurfaceMesh fullHood.stl fullHoodScaled.stl 0.0254
+scaleSurfaceMesh Fuse_lower.stl fuseLowerScaled.stl 0.0254
+
+surfaceFeatureEdges fullGeoScaled.stl fullGeoScaled.fms -angle 10
+surfaceFeatureEdges fullGeoScaled.stl fullGeoScaled80Deg.fms -angle 80
+FMSToSurface fullGeoScaled80Deg.fms 80Deg.fms -exportFeatureEdges
+
+rm -rf fullGeo.stl fullHood.stl Fuse_lower.stl
+
+cartesianMesh > log.cartesianMesh
+checkMesh -allGeometry > log.checkMesh1
+improveMeshQuality > log.improveMeshQuality1
+checkMesh -allGeometry > log.checkMesh2
+improveMeshQuality
+improveMeshQuality
+improveMeshQuality
+checkMesh -allGeometry > log.checkMesh3
+
+renumberMesh -overwrite > log.renumberMesh
+
+decomposePar > log.decomposePar
+
+cp system/controlDictSimple system/controlDict
+cp system/fvSchemesSimple system/fvSchemes
+decomposePar > log.decomposePar
+
+mpirun -np 32 simpleFoam -parallel > log.simpleFoam
+
+
+cp system/controlDictKPF system/controlDict
+cp system/fvSchemesKPF system/fvSchemes
+
+mpirun -np 32 kinematicParcelFoam -parallel > log.kpf
+
