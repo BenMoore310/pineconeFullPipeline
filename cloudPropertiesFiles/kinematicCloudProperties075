@@ -136,7 +136,7 @@ subModels
         p4
         {
             type            manualInjection;
-            massTotal       4.0519e-6;
+            massTotal       4.05191e-6;
             //massFlowRate       0.0001015;
             SOI             505;
             parcelBasisType mass;
@@ -196,7 +196,7 @@ subModels
         p7
         {
             type            manualInjection;
-            massTotal       1.05471e-7;
+            massTotal       1.05472e-7;
             SOI             508;
             parcelBasisType mass;
             U0              (0.256990 0 0);
@@ -236,7 +236,7 @@ subModels
         p9
         {
             type            manualInjection;
-            massTotal       5.94581e-9;
+            massTotal       5.94582e-9;
             //massFlowRate       5.962e-8;
             SOI             510;
             parcelBasisType mass;
@@ -276,7 +276,7 @@ subModels
         p11
         {
             type            manualInjection;
-            massTotal       7.98033e-10;
+            massTotal       7.98034e-10;
             //massFlowRate       1.0002e-8;
             SOI             512;
             parcelBasisType mass;
@@ -316,7 +316,7 @@ subModels
         p13
         {
             type            manualInjection;
-            massTotal       1.09401e-10;
+            massTotal       1.09402e-10;
             //massFlowRate       1.9197e-9;
             SOI             514;
             parcelBasisType mass;
