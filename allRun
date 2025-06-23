@@ -28,7 +28,6 @@ checkMesh -allGeometry > log.checkMesh3
 
 renumberMesh -overwrite > log.renumberMesh
 
-decomposePar > log.decomposePar
 
 cp system/controlDictSimple system/controlDict
 cp system/fvSchemesSimple system/fvSchemes
