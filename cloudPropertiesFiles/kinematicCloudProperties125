@@ -19,7 +19,7 @@ FoamFile
 solution
 {
     active	    true;
-    coupled         true;
+    coupled         false;
     transient       yes;
     cellValueSourceCorrection off;
     //calcFrequency   1;
