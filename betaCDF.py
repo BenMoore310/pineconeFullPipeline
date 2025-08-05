@@ -5,6 +5,7 @@ from scipy.stats import beta
 import argparse
 
 
+
 def offset_curve(coordinates, offset_distance):
     """
     Offset a curve by a given distance

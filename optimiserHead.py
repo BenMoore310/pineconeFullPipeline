@@ -2,8 +2,32 @@ import numpy as np
 from scipy.stats import qmc
 import argparse
 import validCurveGenerator as VCG
+import matplotlib.pyplot as plt
 import json
 import subprocess
+import scienceplots
+plt.style.use(['science', 'notebook'])
+
+
+def simulateDesign():
+    """
+    Simulate the design using the current parameters.
+    """
+    # Placeholder for simulation logic
+    print("Simulating design with current parameters...")
+    subprocess.run(["bash", "allRun"])
+
+    subprocess.run(["bash", "calculateDesignEfficiency"])
+
+    efficiencies = np.loadtxt('efficiency.txt')
+
+    numberEfficiency = efficiencies[0]
+    massEfficiency = efficiencies[1]
+
+    return numberEfficiency, massEfficiency
+
+
+    
 
 
 def betaParamsToJSON(sample, numBasis):
@@ -71,25 +95,35 @@ def main(numBasis, initialSamples, weightingType, seed):
         betaParamsToJSON(sample, numBasis)
 
 
-    with open('trialParams.json', 'r') as f:
-        data = json.load(f)
+        with open('trialParams.json', 'r') as f:
+            data = json.load(f)
 
-        paramArray = []
-        weightArray = []
-        for entry in data:
-            paramArray.extend(entry['basis'])
-            weightArray.extend(entry['weight'])
+            paramArray = []
+            weightArray = []
+            for entry in data:
+                paramArray.extend(entry['basis'])
+                weightArray.extend(entry['weight'])
+            
+        paramArray = np.array(paramArray).reshape(-1, 2)
+        weightArray = np.array(weightArray)
+        print(paramArray.shape)
+        print(weightArray.shape)
+
+
+        # the first check for validity occurs here - by checking the distance
+        # between plates for the given beta-CDF parameters
+        # 
+        VCG.main(numBasis, 'trialParams.json', 'random', resolution=50)
         
-    paramArray = np.array(paramArray).reshape(-1, 2)
-    weightArray = np.array(weightArray)
-    print(paramArray.shape)
-    print(weightArray.shape)
-
-
-    # the first check for validity occurs here - by checking the distance
-    # between plates for the given beta-CDF parameters
-    # 
-    VCG.main(numBasis, 'trialParams.json', 'random', resolution=50)
+        currentSpline = np.loadtxt('spline.txt')
+        # plot the current spline and save to a figure
+        plt.figure()
+        plt.plot(currentSpline[:, 0], currentSpline[:, 1], label='Current Spline')
+        plt.title('Current Evaluated Plate Shape')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.savefig('currentSpline.png')
+        plt.close()
     
 
 
