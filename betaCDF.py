@@ -39,6 +39,38 @@ def offset_curve(coordinates, offset_distance):
     return offset_coordinates
 
 
+def segment_to_segment_distance(p1, p2, q1, q2):
+    """
+    Returns the minimum distance between two line segments p1-p2 and q1-q2.
+    """
+    def clamp(v, min_val, max_val):
+        return max(min_val, min(v, max_val))
+
+    u = p2 - p1
+    v = q2 - q1
+    w0 = p1 - q1
+
+    a = np.dot(u, u)
+    b = np.dot(u, v)
+    c = np.dot(v, v)
+    d = np.dot(u, w0)
+    e = np.dot(v, w0)
+
+    denominator = a * c - b * b
+    if denominator == 0:
+        sc = 0.0
+    else:
+        sc = (b * e - c * d) / denominator
+        sc = clamp(sc, 0.0, 1.0)
+
+    tc = (a * e - b * d) / denominator if denominator != 0 else 0.0
+    tc = clamp(tc, 0.0, 1.0)
+
+    closest_point_on_p = p1 + sc * u
+    closest_point_on_q = q1 + tc * v
+    return np.linalg.norm(closest_point_on_p - closest_point_on_q), closest_point_on_p, closest_point_on_q
+
+
 
 def generate_monotonic_beta_curve(start_pt, end_pt, num_basis, resolution, inputFile):
     """
@@ -89,6 +121,8 @@ def generate_monotonic_beta_curve(start_pt, end_pt, num_basis, resolution, input
 
 
 def main(num_basis, resolution, inputFile):
+
+
     # Define start and end points
     start_point = (17.979, -14.515)
     end_point   = (6.596, -3.132)
@@ -99,6 +133,30 @@ def main(num_basis, resolution, inputFile):
     np.savetxt('spline.txt', curve)
     
     offset_coordinates = offset_curve(curve, 0.249)
+
+    lowerCurveUpperSurface = np.copy(curve)
+    lowerCurveUpperSurface[:,1] -= 3
+    # print(curve.shape)
+    # print(offset_coordinates.shape)
+    # print(lowerCurveUpperSurface.shape)
+
+    minimumSeparation = float('inf')
+    for i in range(len(curve) - 1):
+        p1 = offset_coordinates[i]
+        p2 = offset_coordinates[i + 1]
+        for j in range(len(lowerCurveUpperSurface) - 1):
+            q1 = lowerCurveUpperSurface[j]
+            q2 = lowerCurveUpperSurface[j + 1]
+            dist, pt_p, pt_q = segment_to_segment_distance(p1, p2, q1, q2)
+            if dist < minimumSeparation:
+                minimumSeparation = dist
+                min_pts = (pt_p, pt_q)
+                min_indices = (i, j)
+
+    print('Minimum separation between curves:', minimumSeparation)
+    if minimumSeparation < 0.675:
+        print('Minimum separation is less than 0.675", geometry is invalid.')
+ 
 
     to_delete = []
 
