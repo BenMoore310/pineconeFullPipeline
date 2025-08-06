@@ -1,0 +1,70 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2306                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ddtSchemes
+{
+      //default	Euler;
+      default steadyState;
+//    default CrankNicolson 0.9;
+}
+
+gradSchemes
+{
+    default         cellMDLimited Gauss linear 0;
+    grad(U)	    cellMDLimited Gauss linear 0.333;
+}
+
+divSchemes
+{
+    default         none;
+    //div(alphaPhi.water,U.water) Gauss linearUpwindV unlimited;
+    //div(((alpha.water*nuEff.water)*dev2(T(grad(U.water))))) Gauss linear;
+    //div(phiGByA,kinematicCloud:alpha) Gauss linear;
+    //div(alphaPhi.water,epsilon.water) Gauss limitedLinear 1;
+    //div(alphaPhi.water,k.water) Gauss limitedLinear 1;
+
+    div(phi,U)	Gauss linearUpwind grad(U);
+    div(phi,k)  Gauss upwind;
+    //div(phi,epsilon)  Gauss linearUpwind default;
+    div(phi,omega)	Gauss upwind;
+    //div(phi,R)  Gauss linearUpwind default;
+    div(phi,nuTilda)  Gauss linearUpwind default;
+    div((nuEff*dev2(T(grad(U)))))  Gauss linear;
+
+}
+
+laplacianSchemes
+{
+    default         Gauss linear limited 0.5;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         limited 0.5;
+}
+
+wallDist
+{
+	method meshWave;
+}
+
+
+// ************************************************************************* //
