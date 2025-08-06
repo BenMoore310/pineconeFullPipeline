@@ -225,6 +225,7 @@ def optimize_HVKG_and_get_obs_decoupled(model):
         objective_candidates.append(candidates)
     best_objective_index = torch.cat(objective_vals, dim=-1).argmax().item()
     eval_objective_indices = [best_objective_index]
+    print(eval_objective_indices)
     candidates = objective_candidates[best_objective_index]
     vals = objective_vals[best_objective_index]
     # observe new values
@@ -384,6 +385,7 @@ total_cost = {"hvkg": 0.0}
 # call helper functions to generate initial training data and initialize model
 train_x_hvkg, train_obj_hvkg = generate_initial_data(n=N_INIT)
 train_obj_hvkg_list = list(train_obj_hvkg.split(1, dim=-1))
+print(train_obj_hvkg_list)
 train_x_hvkg_list = [train_x_hvkg] * len(train_obj_hvkg_list)
 mll_hvkg, model_hvkg = initialize_model(train_x_hvkg_list, train_obj_hvkg_list)
 # train_obj_random_list = train_obj_hvkg_list
@@ -428,12 +430,15 @@ while any(v < COST_BUDGET for v in total_cost.values()):
         ) = optimize_HVKG_and_get_obs_decoupled(
             model_hvkg,
         )
+        print('eval objectives: ', eval_objective_indices_hvkg)
         # update training points
         for i in eval_objective_indices_hvkg:
             train_x_hvkg_list[i] = torch.cat([train_x_hvkg_list[i], new_x_hvkg])
             train_obj_hvkg_list[i] = torch.cat(
                 [train_obj_hvkg_list[i], new_obj_hvkg], dim=0
             )
+        print(train_obj_hvkg_list[0].shape)
+        print(train_obj_hvkg_list[1].shape)
         # update costs
         all_outcome_cost = cost_model(new_x_hvkg)
         new_cost_hvkg = all_outcome_cost[..., eval_objective_indices_hvkg].sum(dim=-1)

@@ -82,6 +82,8 @@ def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, g
         Q (numpy array): Array of (x, y) points
     """
 
+    #TODO set a seed for the random generation - make it deterministic for regeneration
+
     if generationType == 'random':
         # Random beta parameters and non-negative weights
         beta_params = [(np.random.uniform(0, 15), np.random.uniform(0, 15)) for _ in range(num_basis)]
@@ -207,7 +209,7 @@ def main(num_basis, paramsFile, weightingType='random', resolution=50):
         # Generate a new curve
         curve, beta_params, weights = generate_monotonic_beta_curve(start_point, end_point, paramsFile, 'random', 'random', num_basis=num_basis, resolution=resolution)
 
-        np.savetxt('spline.txt', curve)
+        np.savetxt('runDirectory/spline.txt', curve)
 
 
         offset_coordinates = offset_curve(curve, 0.249)
@@ -257,7 +259,7 @@ def main(num_basis, paramsFile, weightingType='random', resolution=50):
 
     offset_coordinates = np.delete(offset_coordinates, second_delete, 0)
 
-    np.savetxt('offset_spline.txt', np.flip(offset_coordinates, axis=0))
+    np.savetxt('runDirectory/offset_spline.txt', np.flip(offset_coordinates, axis=0))
 
     print('Curve validity check complete.')
 

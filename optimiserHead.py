@@ -8,21 +8,42 @@ import subprocess
 import scienceplots
 plt.style.use(['science', 'notebook'])
 
+cwdPath = '/home/bm424/Projects/pineconeFullPipeline'
 
-def simulateDesign():
+
+def simulateDesign(objective):
     """
     Simulate the design using the current parameters.
     """
+
+    objective_strings = ['025', '05', '075', '100', '125', '150']
+    directoryString = objective_strings[objective]
+
+    src = f'0_timesteps/0.{directoryString}'
+    dst = './0'
+
+    cloudSrc = f'cloudPropertiesFiles/kinematicCloudProperties{directoryString}'
+    cloudDst = 'constant/kinematicCloudProperties'
+
+    subprocess.run(['cp', '-r', src, dst], cwd=cwdPath + '/runDirectory', check=True)
+    
+    subprocess.run(['cp', cloudSrc, cloudDst], cwd=cwdPath + '/runDirectory', check=True)
+    
     # Placeholder for simulation logic
     print("Simulating design with current parameters...")
-    subprocess.run(["bash", "allRun"])
 
-    subprocess.run(["bash", "calculateDesignEfficiency"])
+
+    subprocess.run(["bash", "allRun"], cwd = cwdPath + '/runDirectory', check=True)
+
+    subprocess.run(["bash", "calculateDesignEfficiency"], cwd = cwdPath + '/runDirectory', check=True)
 
     efficiencies = np.loadtxt('efficiency.txt')
 
     numberEfficiency = efficiencies[0]
     massEfficiency = efficiencies[1]
+
+    subprocess.run(['rm', '-r', 0], cwd=cwdPath + '/runDirectory', check=True)
+
 
     return numberEfficiency, massEfficiency
 
@@ -51,10 +72,18 @@ def betaParamsToJSON(sample, numBasis):
         json.dump(structured, f, indent=4)
 
 
-def main(numBasis, initialSamples, weightingType, seed):
+def main(numBasis, numObj, initialSamples, weightingType, seed):
+
+    # list of arrays of values for each objective
+    objectiveList = [np.array([]) for _ in range(numObj)]
+
+    evaluatedObjectives = np.random.randint(low=0, 
+                                            high=6,
+                                            size = (initialSamples),
+                                            dtype=int )
 
     lbBasis = 0.0
-    ubBasis = 15.0
+    ubBasis = 12.0
 
     lbWeight = 0.0
     ubWeight = 1.0
@@ -91,6 +120,9 @@ def main(numBasis, initialSamples, weightingType, seed):
     print('initialPopulation', initialPopulation)
 
     for sample in initialPopulation:
+
+        i = 0
+
         print('sample', sample)
         betaParamsToJSON(sample, numBasis)
 
@@ -115,7 +147,7 @@ def main(numBasis, initialSamples, weightingType, seed):
         # 
         VCG.main(numBasis, 'trialParams.json', 'random', resolution=50)
         
-        currentSpline = np.loadtxt('spline.txt')
+        currentSpline = np.loadtxt('runDirectory/spline.txt')
         # plot the current spline and save to a figure
         plt.figure()
         plt.plot(currentSpline[:, 0], currentSpline[:, 1], label='Current Spline')
@@ -124,6 +156,11 @@ def main(numBasis, initialSamples, weightingType, seed):
         plt.ylabel('y')
         plt.savefig('currentSpline.png')
         plt.close()
+
+        numberEfficiency, massEfficiency = simulateDesign(evaluatedObjectives[i])
+
+
+        i += 1
     
 
 
@@ -137,6 +174,12 @@ if __name__ == "__main__":
         type=int,
         default=2,
         help="Number of Beta basis functions to use in the curve generation."
+    )
+    parser.add_argument(
+        "--numObj",
+        type=int,
+        default=1,
+        help="Number of objectives to be optimised over."
     )
     parser.add_argument(
         "--initialSamples",
@@ -160,4 +203,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(args.numBasis, args.initialSamples, args.weightingType, args.seed)
+    main(args.numBasis, args.numObj, args.initialSamples, args.weightingType, args.seed)
