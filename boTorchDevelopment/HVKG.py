@@ -6,6 +6,7 @@ import os
 
 import torch
 
+import pymoo
 
 tkwargs = {
     "dtype": torch.double,
@@ -101,30 +102,30 @@ standard_bounds = torch.zeros(2, problem.dim, **tkwargs)
 standard_bounds[1] = 1
 
 
-def optimize_qnehvi_and_get_observation(model, train_x, sampler):
-    """Optimizes the qNEHVI acquisition function, and returns a new candidate and observation."""
-    # partition non-dominated space into disjoint rectangles
-    acq_func = qLogNoisyExpectedHypervolumeImprovement(
-        model=model,
-        ref_point=problem.ref_point.tolist(),  # use known reference point
-        X_baseline=normalize(train_x, problem.bounds),
-        prune_baseline=True,  # prune baseline points that have estimated zero probability of being Pareto optimal
-        sampler=sampler,
-    )
-    # optimize
-    candidates, _ = optimize_acqf(
-        acq_function=acq_func,
-        bounds=standard_bounds,
-        q=BATCH_SIZE,
-        num_restarts=NUM_RESTARTS,
-        raw_samples=RAW_SAMPLES,  # used for intialization heuristic
-        options={"batch_limit": 5, "maxiter": 200},
-        sequential=True,
-    )
-    # observe new values
-    new_x = unnormalize(candidates.detach(), bounds=problem.bounds)
-    new_obj_true = problem(new_x)
-    return new_x, new_obj_true
+# def optimize_qnehvi_and_get_observation(model, train_x, sampler):
+#     """Optimizes the qNEHVI acquisition function, and returns a new candidate and observation."""
+#     # partition non-dominated space into disjoint rectangles
+#     acq_func = qLogNoisyExpectedHypervolumeImprovement(
+#         model=model,
+#         ref_point=problem.ref_point.tolist(),  # use known reference point
+#         X_baseline=normalize(train_x, problem.bounds),
+#         prune_baseline=True,  # prune baseline points that have estimated zero probability of being Pareto optimal
+#         sampler=sampler,
+#     )
+#     # optimize
+#     candidates, _ = optimize_acqf(
+#         acq_function=acq_func,
+#         bounds=standard_bounds,
+#         q=BATCH_SIZE,
+#         num_restarts=NUM_RESTARTS,
+#         raw_samples=RAW_SAMPLES,  # used for intialization heuristic
+#         options={"batch_limit": 5, "maxiter": 200},
+#         sequential=True,
+#     )
+#     # observe new values
+#     new_x = unnormalize(candidates.detach(), bounds=problem.bounds)
+#     new_obj_true = problem(new_x)
+#     return new_x, new_obj_true
 
 
 '''
@@ -237,6 +238,9 @@ def optimize_HVKG_and_get_obs_decoupled(model):
 # define function to find model-estimated pareto set of 
 # designs under posterior mean using NSGA-II
 
+# this is just to compare the estimated HV in each iteration to an analytical pareto front 
+# to compare regrets between optimisers. 
+
 
 import numpy as np
 from botorch.utils.multi_objective.box_decompositions.non_dominated import (
@@ -246,15 +250,15 @@ from botorch.utils.multi_objective.pareto import _is_non_dominated_loop
 from gpytorch import settings
 
 try:
-    from pymoo.algorithms.nsga2 import NSGA2
-    from pymoo.model.problem import Problem
+    from pymoo.algorithms.moo.nsga2 import NSGA2
+    from pymoo.core.problem import Problem
     from pymoo.optimize import minimize
-    from pymoo.util.termination.max_gen import MaximumGenerationTermination
+    # from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
     def get_model_identified_hv_maximizing_set(
         model,
-        population_size=250,
-        max_gen=100,
+        population_size=50,
+        max_gen=50,
     ):
         """Optimize the posterior mean using NSGA-II."""
         tkwargs = {
@@ -297,7 +301,7 @@ try:
         res = minimize(
             pymoo_problem,
             algorithm,
-            termination=MaximumGenerationTermination(max_gen),
+            termination=('n_gen', max_gen),
             # seed=0,  # fix seed
             verbose=False,
         )
@@ -373,7 +377,8 @@ torch.manual_seed(0)
 verbose = True
 N_INIT = 2 * problem.dim + 1
 
-total_cost = {"hvkg": 0.0, "qnehvi": 0.0, "random": 0.0}
+# total_cost = {"hvkg": 0.0, "qnehvi": 0.0, "random": 0.0}
+total_cost = {"hvkg": 0.0}
 
 
 # call helper functions to generate initial training data and initialize model
@@ -381,31 +386,31 @@ train_x_hvkg, train_obj_hvkg = generate_initial_data(n=N_INIT)
 train_obj_hvkg_list = list(train_obj_hvkg.split(1, dim=-1))
 train_x_hvkg_list = [train_x_hvkg] * len(train_obj_hvkg_list)
 mll_hvkg, model_hvkg = initialize_model(train_x_hvkg_list, train_obj_hvkg_list)
-train_obj_random_list = train_obj_hvkg_list
-train_x_random_list = train_x_hvkg_list
-train_x_qnehvi_list, train_obj_qnehvi_list = (
-    train_x_hvkg_list,
-    train_obj_hvkg_list,
-)
+# train_obj_random_list = train_obj_hvkg_list
+# train_x_random_list = train_x_hvkg_list
+# train_x_qnehvi_list, train_obj_qnehvi_list = (
+#     train_x_hvkg_list,
+#     train_obj_hvkg_list,
+# )
 cost_hvkg = cost_model(train_x_hvkg).sum(dim=-1)
 total_cost["hvkg"] += cost_hvkg.sum().item()
-cost_qnehvi = cost_hvkg
-cost_random = cost_hvkg
-total_cost["qnehvi"] = total_cost["hvkg"]
-total_cost["random"] = total_cost["hvkg"]
-mll_qnehvi, model_qnehvi = initialize_model(train_x_qnehvi_list, train_obj_qnehvi_list)
-mll_random, model_random = initialize_model(train_x_random_list, train_obj_random_list)
+# cost_qnehvi = cost_hvkg
+# cost_random = cost_hvkg
+# total_cost["qnehvi"] = total_cost["hvkg"]
+# total_cost["random"] = total_cost["hvkg"]
+# mll_qnehvi, model_qnehvi = initialize_model(train_x_qnehvi_list, train_obj_qnehvi_list)
+# mll_random, model_random = initialize_model(train_x_random_list, train_obj_random_list)
 # fit the models
 fit_gpytorch_mll(mll_hvkg)
-fit_gpytorch_mll(mll_qnehvi)
-fit_gpytorch_mll(mll_random)
+# fit_gpytorch_mll(mll_qnehvi)
+# fit_gpytorch_mll(mll_random)
 # compute hypervolume
-hv = get_model_identified_hv_maximizing_set(model=model_qnehvi)
-hvs_hvkg, hvs_qehvi, hvs_qnehvi, hvs_random = [hv], [hv], [hv], [hv]
+hv = get_model_identified_hv_maximizing_set(model=model_hvkg)
+hvs_hvkg = [hv]
 if verbose:
     print(
-        f"\nInitial: Hypervolume (random, qHVKG, qNEHVI) = "
-        f"({hvs_random[-1]:>4.2f}, {hvs_hvkg[-1]:>4.2f}, {hvs_qnehvi[-1]:>4.2f}).",
+        f"\nInitial: Hypervolume (qHVKG) = "
+        f"({hvs_hvkg[-1]:>4.2f}).",
         end="",
     )
 # run N_BATCH rounds of BayesOpt after the initial random batch
@@ -438,51 +443,51 @@ while any(v < COST_BUDGET for v in total_cost.values()):
         mll_hvkg, model_hvkg = initialize_model(train_x_hvkg_list, train_obj_hvkg_list)
         fit_gpytorch_mll(mll_hvkg)
 
-    if "qnehvi" in active_algos:
-        qnehvi_sampler = SobolQMCNormalSampler(sample_shape=torch.Size([MC_SAMPLES]))
-        # generate candidates
-        new_x_qnehvi, new_obj_qnehvi = optimize_qnehvi_and_get_observation(
-            model_qnehvi, train_x_qnehvi_list[0], qnehvi_sampler
-        )
-        # update training points
-        for i in objective_indices:
-            train_x_qnehvi_list[i] = torch.cat([train_x_qnehvi_list[i], new_x_qnehvi])
-            train_obj_qnehvi_list[i] = torch.cat(
-                [train_obj_qnehvi_list[i], new_obj_qnehvi[..., i : i + 1]]
-            )
-        # update costs
-        new_cost_qnehvi = cost_model(new_x_qnehvi).sum(dim=-1)
-        cost_qnehvi = torch.cat([cost_qnehvi, new_cost_qnehvi], dim=0)
-        total_cost["qnehvi"] += new_cost_qnehvi.sum().item()
-        # fit models
-        mll_qnehvi, model_qnehvi = initialize_model(
-            train_x_qnehvi_list, train_obj_qnehvi_list
-        )
-        fit_gpytorch_mll(mll_qnehvi)
-    if "random" in active_algos:
-        # generate candidates
-        new_x_random, new_obj_random = generate_initial_data(n=BATCH_SIZE)
-        # update training points
-        for i in objective_indices:
-            train_x_random_list[i] = torch.cat([train_x_random_list[i], new_x_random])
-            train_obj_random_list[i] = torch.cat(
-                [train_obj_random_list[i], new_obj_random[..., i : i + 1]]
-            )
-        # update costs
-        new_cost_random = cost_model(new_x_random).sum(dim=-1)
-        cost_random = torch.cat([cost_random, new_cost_random], dim=0)
-        total_cost["random"] += new_cost_random.sum().item()
-        # fit models
-        mll_random, model_random = initialize_model(
-            train_x_random_list, train_obj_random_list
-        )
-        fit_gpytorch_mll(mll_random)
+    # if "qnehvi" in active_algos:
+    #     qnehvi_sampler = SobolQMCNormalSampler(sample_shape=torch.Size([MC_SAMPLES]))
+    #     # generate candidates
+    #     new_x_qnehvi, new_obj_qnehvi = optimize_qnehvi_and_get_observation(
+    #         model_qnehvi, train_x_qnehvi_list[0], qnehvi_sampler
+    #     )
+    #     # update training points
+    #     for i in objective_indices:
+    #         train_x_qnehvi_list[i] = torch.cat([train_x_qnehvi_list[i], new_x_qnehvi])
+    #         train_obj_qnehvi_list[i] = torch.cat(
+    #             [train_obj_qnehvi_list[i], new_obj_qnehvi[..., i : i + 1]]
+    #         )
+    #     # update costs
+    #     new_cost_qnehvi = cost_model(new_x_qnehvi).sum(dim=-1)
+    #     cost_qnehvi = torch.cat([cost_qnehvi, new_cost_qnehvi], dim=0)
+    #     total_cost["qnehvi"] += new_cost_qnehvi.sum().item()
+    #     # fit models
+    #     mll_qnehvi, model_qnehvi = initialize_model(
+    #         train_x_qnehvi_list, train_obj_qnehvi_list
+    #     )
+    #     fit_gpytorch_mll(mll_qnehvi)
+    # if "random" in active_algos:
+    #     # generate candidates
+    #     new_x_random, new_obj_random = generate_initial_data(n=BATCH_SIZE)
+    #     # update training points
+    #     for i in objective_indices:
+    #         train_x_random_list[i] = torch.cat([train_x_random_list[i], new_x_random])
+    #         train_obj_random_list[i] = torch.cat(
+    #             [train_obj_random_list[i], new_obj_random[..., i : i + 1]]
+    #         )
+    #     # update costs
+    #     new_cost_random = cost_model(new_x_random).sum(dim=-1)
+    #     cost_random = torch.cat([cost_random, new_cost_random], dim=0)
+    #     total_cost["random"] += new_cost_random.sum().item()
+    #     # fit models
+    #     mll_random, model_random = initialize_model(
+    #         train_x_random_list, train_obj_random_list
+    #     )
+    #     fit_gpytorch_mll(mll_random)
 
     # compute hypervolume
     for label, model, hv_list in zip(
-        ["hvkg", "qnehvi", "random"],
-        [model_hvkg, model_qnehvi, model_random],
-        [hvs_hvkg, hvs_qnehvi, hvs_random],
+        ["hvkg"],
+        [model_hvkg],
+        [hvs_hvkg],
     ):
         if label in active_algos:
             hv = get_model_identified_hv_maximizing_set(model=model)
@@ -494,12 +499,12 @@ while any(v < COST_BUDGET for v in total_cost.values()):
     t1 = time.monotonic()
     if verbose:
         print(
-            f"\nBatch {iteration:>2}: Costs (random, qHVKG, qNEHVI) = "
-            f"({total_cost['random']:>4.2f}, {total_cost['hvkg']:>4.2f}, {total_cost['qnehvi']:>4.2f}). "
+            f"\nBatch {iteration:>2}: Costs (qHVKG) = "
+            f"({total_cost['hvkg']:>4.2f}). "
         )
         print(
-            f"\nHypervolume (random, qHVKG, qNEHVI) = "
-            f"({hvs_random[-1]:>4.2f}, {hvs_hvkg[-1]:>4.2f}, {hvs_qnehvi[-1]:>4.2f}), "
+            f"\nHypervolume (qHVKG) = "
+            f"({hvs_hvkg[-1]:>4.2f}), "
             f"time = {t1-t0:>4.2f}.",
             end="",
         )
