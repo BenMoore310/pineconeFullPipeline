@@ -6,11 +6,11 @@ from scipy.stats import beta
 import json
 
 
-
 def segment_to_segment_distance(p1, p2, q1, q2):
     """
     Returns the minimum distance between two line segments p1-p2 and q1-q2.
     """
+
     def clamp(v, min_val, max_val):
         return max(min_val, min(v, max_val))
 
@@ -36,30 +36,34 @@ def segment_to_segment_distance(p1, p2, q1, q2):
 
     closest_point_on_p = p1 + sc * u
     closest_point_on_q = q1 + tc * v
-    return np.linalg.norm(closest_point_on_p - closest_point_on_q), closest_point_on_p, closest_point_on_q
+    return (
+        np.linalg.norm(closest_point_on_p - closest_point_on_q),
+        closest_point_on_p,
+        closest_point_on_q,
+    )
 
 
 def offset_curve(coordinates, offset_distance):
     """
     Offset a curve by a given distance
     """
-    x = coordinates[:,0]
-    y = coordinates[:,1]
+    x = coordinates[:, 0]
+    y = coordinates[:, 1]
 
-    #calculate derivatives (ie tangent vector)
+    # calculate derivatives (ie tangent vector)
     dx = np.gradient(x)
     dy = np.gradient(y)
-    
-    #compute normal vectors (ie tangent vector rotated by 90 degrees)
+
+    # compute normal vectors (ie tangent vector rotated by 90 degrees)
     normal_x = -dy
     normal_y = dx
 
-    #normalise normal vectors
+    # normalise normal vectors
     normal_magnitude = np.sqrt(normal_x**2 + normal_y**2)
     normal_x /= normal_magnitude
     normal_y /= normal_magnitude
 
-    #ofset original curve
+    # ofset original curve
     offset_x = x + offset_distance * normal_x
     offset_y = y + offset_distance * normal_y
 
@@ -68,7 +72,15 @@ def offset_curve(coordinates, offset_distance):
     return offset_coordinates
 
 
-def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, generationType, num_basis=2, resolution=50):
+def generate_monotonic_beta_curve(
+    start_pt,
+    end_pt,
+    paramsFile,
+    weightingType,
+    generationType,
+    num_basis=2,
+    resolution=50,
+):
     """
     Generate a 2D monotonic curve from start_pt to end_pt using random Beta CDFs.
 
@@ -82,20 +94,23 @@ def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, g
         Q (numpy array): Array of (x, y) points
     """
 
-    #TODO set a seed for the random generation - make it deterministic for regeneration
+    # TODO set a seed for the random generation - make it deterministic for regeneration
 
-    if generationType == 'random':
+    if generationType == "random":
         # Random beta parameters and non-negative weights
-        beta_params = [(np.random.uniform(0, 15), np.random.uniform(0, 15)) for _ in range(num_basis)]
+        beta_params = [
+            (np.random.uniform(0, 15), np.random.uniform(0, 15))
+            for _ in range(num_basis)
+        ]
         if num_basis == 1:
             weights = np.array([1.0])
-        elif weightingType == 'random':
+        elif weightingType == "random":
             weights = np.random.rand(num_basis)
-        elif weightingType == 'equal':
+        elif weightingType == "equal":
             weights = np.ones(num_basis) / num_basis
         else:
             raise ValueError("Invalid weighting type. Use 'random' or 'equal'.")
-        
+
         # update the JSON file with the parameters
 
         with open(paramsFile, "r") as f:
@@ -111,27 +126,24 @@ def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, g
         with open(paramsFile, "w") as f:
             json.dump(data, f, indent=2)
 
-    elif generationType == 'preGenerated':
+    elif generationType == "preGenerated":
 
-        with open(paramsFile, 'r') as f:
+        with open(paramsFile, "r") as f:
             data = json.load(f)
 
             paramArray = []
             weightArray = []
             for entry in data:
-                paramArray.extend(entry['basis'])
-                weightArray.extend(entry['weight'])
-        
+                paramArray.extend(entry["basis"])
+                weightArray.extend(entry["weight"])
 
         beta_params = np.array(paramArray).reshape(-1, 2)
         weights = np.array(weightArray)
     # print(paramArray)
     # print(weightArray)
 
-
     # Normalized x values
     x_norm = np.linspace(0, 1, resolution)
-
 
     # weights = np.random.rand(num_basis)
     # weights = np.ones(num_basis) / num_basis
@@ -139,9 +151,6 @@ def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, g
 
     # np.savetxt('betaParams.txt', np.vstack((beta_params, weights)))
     # print('stack',np.vstack((beta_params, weights))[:2])
-
-
-
 
     # Build the curve in normalized space
     y_norm = np.zeros_like(x_norm)
@@ -160,32 +169,35 @@ def generate_monotonic_beta_curve(start_pt, end_pt, paramsFile, weightingType, g
     return Q, beta_params, weights
 
 
-def main(num_basis, paramsFile, weightingType='random', resolution=50):
+def main(num_basis, paramsFile, weightingType="random", resolution=50):
 
     validGeom = False
 
-
     # Define start and end points
     start_point = (17.979, -14.515)
-    end_point   = (6.596, -3.132)
-
+    end_point = (6.596, -3.132)
 
     # Generate the curve
-    curve, beta_params, weights = generate_monotonic_beta_curve(start_point, end_point, paramsFile, 'random', 'preGenerated', num_basis=num_basis, resolution=50)
+    curve, beta_params, weights = generate_monotonic_beta_curve(
+        start_point,
+        end_point,
+        paramsFile,
+        "random",
+        "preGenerated",
+        num_basis=num_basis,
+        resolution=50,
+    )
 
-            
     offset_coordinates = offset_curve(curve, 0.249)
 
     lowerCurveUpperSurface = np.copy(curve)
-    lowerCurveUpperSurface[:,1] -= 3
-    print(curve.shape)
-    print(offset_coordinates.shape)
-    print(lowerCurveUpperSurface.shape)
-
-
+    lowerCurveUpperSurface[:, 1] -= 3
+    # print(curve.shape)
+    # print(offset_coordinates.shape)
+    # print(lowerCurveUpperSurface.shape)
 
     # Main loop over segment pairs
-    minimumSeparation = float('inf')
+    minimumSeparation = float("inf")
     for i in range(len(curve) - 1):
         p1 = offset_coordinates[i]
         p2 = offset_coordinates[i + 1]
@@ -198,26 +210,34 @@ def main(num_basis, paramsFile, weightingType='random', resolution=50):
                 min_pts = (pt_p, pt_q)
                 min_indices = (i, j)
 
-    print('Minimum separation between curves:', minimumSeparation)
+    print("Minimum separation between curves:", minimumSeparation)
     if minimumSeparation < 0.675:
         print('Minimum separation is less than 0.675", geometry is invalid.')
         validGeom = False
-    else: validGeom = True
+    else:
+        validGeom = True
 
     while not validGeom:
 
         # Generate a new curve
-        curve, beta_params, weights = generate_monotonic_beta_curve(start_point, end_point, paramsFile, 'random', 'random', num_basis=num_basis, resolution=resolution)
+        curve, beta_params, weights = generate_monotonic_beta_curve(
+            start_point,
+            end_point,
+            paramsFile,
+            "random",
+            "random",
+            num_basis=num_basis,
+            resolution=resolution,
+        )
 
-        np.savetxt('runDirectory/spline.txt', curve)
-
+        np.savetxt("runDirectory/spline.txt", curve)
 
         offset_coordinates = offset_curve(curve, 0.249)
 
         lowerCurveUpperSurface = np.copy(curve)
-        lowerCurveUpperSurface[:,1] -= 3
+        lowerCurveUpperSurface[:, 1] -= 3
 
-        minimumSeparation = float('inf')
+        minimumSeparation = float("inf")
         for i in range(len(curve) - 1):
             p1 = offset_coordinates[i]
             p2 = offset_coordinates[i + 1]
@@ -230,16 +250,16 @@ def main(num_basis, paramsFile, weightingType='random', resolution=50):
                     min_pts = (pt_p, pt_q)
                     min_indices = (i, j)
 
-        print('Minimum separation between curves:', minimumSeparation)
+        print("Minimum separation between curves:", minimumSeparation)
         if minimumSeparation < 0.675:
             print('Minimum separation is less than 0.675", geometry is invalid.')
             validGeom = False
-        else: validGeom = True
+        else:
+            validGeom = True
 
-    #function to check when to stop offset coordinates and connect to the main stack
+    # function to check when to stop offset coordinates and connect to the main stack
 
     # print(len(offset_coordinates))
-
 
     to_delete = []
 
@@ -258,9 +278,11 @@ def main(num_basis, paramsFile, weightingType='random', resolution=50):
             second_delete.append(i)
 
     offset_coordinates = np.delete(offset_coordinates, second_delete, 0)
+        
+    np.savetxt("runDirectory/spline.txt", curve)
 
-    np.savetxt('runDirectory/offset_spline.txt', np.flip(offset_coordinates, axis=0))
+    np.savetxt("runDirectory/offset_spline.txt", np.flip(offset_coordinates, axis=0))
 
-    print('Curve validity check complete.')
+    print("Curve validity check complete.")
 
     # print(len(offset_coordinates))

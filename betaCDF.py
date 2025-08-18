@@ -5,7 +5,6 @@ from scipy.stats import beta
 import argparse
 
 
-
 def offset_curve(coordinates, offset_distance):
     """
     Offset a curve by a given distance
@@ -15,23 +14,23 @@ def offset_curve(coordinates, offset_distance):
     Returns:
         offset_coordinates (numpy array): Array of offset (x, y) points
     """
-    x = coordinates[:,0]
-    y = coordinates[:,1]
+    x = coordinates[:, 0]
+    y = coordinates[:, 1]
 
-    #calculate derivatives (ie tangent vector)
+    # calculate derivatives (ie tangent vector)
     dx = np.gradient(x)
     dy = np.gradient(y)
-    
-    #compute normal vectors (ie tangent vector rotated by 90 degrees)
+
+    # compute normal vectors (ie tangent vector rotated by 90 degrees)
     normal_x = -dy
     normal_y = dx
 
-    #normalise normal vectors
+    # normalise normal vectors
     normal_magnitude = np.sqrt(normal_x**2 + normal_y**2)
     normal_x /= normal_magnitude
     normal_y /= normal_magnitude
 
-    #ofset original curve
+    # ofset original curve
     offset_x = x + offset_distance * normal_x
     offset_y = y + offset_distance * normal_y
 
@@ -44,6 +43,7 @@ def segment_to_segment_distance(p1, p2, q1, q2):
     """
     Returns the minimum distance between two line segments p1-p2 and q1-q2.
     """
+
     def clamp(v, min_val, max_val):
         return max(min_val, min(v, max_val))
 
@@ -69,8 +69,11 @@ def segment_to_segment_distance(p1, p2, q1, q2):
 
     closest_point_on_p = p1 + sc * u
     closest_point_on_q = q1 + tc * v
-    return np.linalg.norm(closest_point_on_p - closest_point_on_q), closest_point_on_p, closest_point_on_q
-
+    return (
+        np.linalg.norm(closest_point_on_p - closest_point_on_q),
+        closest_point_on_p,
+        closest_point_on_q,
+    )
 
 
 def generate_monotonic_beta_curve(start_pt, end_pt, num_basis, resolution, inputFile):
@@ -94,15 +97,13 @@ def generate_monotonic_beta_curve(start_pt, end_pt, num_basis, resolution, input
 
     inputParams = np.loadtxt(inputFile)
 
-
-
     beta_params = inputParams[:num_basis]
-    print('beta params =', beta_params)
+    print("beta params =", beta_params)
     # weights = np.random.rand(num_basis)
     # weights = np.ones(num_basis) / num_basis
     weights = inputParams[-1]
 
-    print('weights', weights)
+    print("weights", weights)
 
     # Build the curve in normalized space
     y_norm = np.zeros_like(x_norm)
@@ -123,25 +124,26 @@ def generate_monotonic_beta_curve(start_pt, end_pt, num_basis, resolution, input
 
 def main(num_basis, resolution, inputFile):
 
-
     # Define start and end points
     start_point = (17.979, -14.515)
-    end_point   = (6.596, -3.132)
+    end_point = (6.596, -3.132)
 
     # Generate the curve
-    curve, beta_params, weights = generate_monotonic_beta_curve(start_point, end_point, num_basis, resolution, inputFile)
+    curve, beta_params, weights = generate_monotonic_beta_curve(
+        start_point, end_point, num_basis, resolution, inputFile
+    )
 
-    np.savetxt('spline.txt', curve)
-    
+    np.savetxt("spline.txt", curve)
+
     offset_coordinates = offset_curve(curve, 0.249)
 
     lowerCurveUpperSurface = np.copy(curve)
-    lowerCurveUpperSurface[:,1] -= 3
+    lowerCurveUpperSurface[:, 1] -= 3
     # print(curve.shape)
     # print(offset_coordinates.shape)
     # print(lowerCurveUpperSurface.shape)
 
-    minimumSeparation = float('inf')
+    minimumSeparation = float("inf")
     for i in range(len(curve) - 1):
         p1 = offset_coordinates[i]
         p2 = offset_coordinates[i + 1]
@@ -154,10 +156,9 @@ def main(num_basis, resolution, inputFile):
                 min_pts = (pt_p, pt_q)
                 min_indices = (i, j)
 
-    print('Minimum separation between curves:', minimumSeparation)
+    print("Minimum separation between curves:", minimumSeparation)
     if minimumSeparation < 0.675:
         print('Minimum separation is less than 0.675", geometry is invalid.')
- 
 
     to_delete = []
 
@@ -177,10 +178,10 @@ def main(num_basis, resolution, inputFile):
 
     offset_coordinates = np.delete(offset_coordinates, second_delete, 0)
 
-    np.savetxt('offset_spline.txt', np.flip(offset_coordinates, axis=0))
+    np.savetxt("offset_spline.txt", np.flip(offset_coordinates, axis=0))
 
 
-#eg: python3.11 betaCDF.py --num_basis 4 --resolution 50 --inputFile betaParams.txt
+# eg: python3.11 betaCDF.py --num_basis 4 --resolution 50 --inputFile betaParams.txt
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a monotonic beta curve.")
     parser.add_argument(

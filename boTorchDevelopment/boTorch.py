@@ -9,10 +9,10 @@ Y = 1 - torch.linalg.norm(train_X - 0.5, dim=-1, keepdim=True)
 Y = Y + 0.1 * torch.randn_like(Y)  # add some noise
 
 gp = SingleTaskGP(
-  train_X=train_X,
-  train_Y=Y,
-  input_transform=Normalize(d=2),
-  outcome_transform=Standardize(m=1),
+    train_X=train_X,
+    train_Y=Y,
+    input_transform=Normalize(d=2),
+    outcome_transform=Standardize(m=1),
 )
 mll = ExactMarginalLogLikelihood(gp.likelihood, gp)
 fit_gpytorch_mll(mll)
@@ -25,6 +25,10 @@ from botorch.optim import optimize_acqf
 
 bounds = torch.stack([torch.zeros(2), torch.ones(2)]).to(torch.double)
 candidate, acq_value = optimize_acqf(
-  logEI, bounds=bounds, q=1, num_restarts=5, raw_samples=20,
+    logEI,
+    bounds=bounds,
+    q=1,
+    num_restarts=5,
+    raw_samples=20,
 )
 print(candidate)  # tensor([[0.2981, 0.2401]], dtype=torch.float64)

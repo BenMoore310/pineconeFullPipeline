@@ -1,5 +1,5 @@
-# MOBO with decoupled evaluations - 
-# Using Hypervolume Knowledge Gradient 
+# MOBO with decoupled evaluations -
+# Using Hypervolume Knowledge Gradient
 
 
 import os
@@ -15,10 +15,10 @@ tkwargs = {
 SMOKE_TEST = os.environ.get("SMOKE_TEST")
 
 print("Using device:", tkwargs["device"])
-print('Torch version' , torch.__version__)
+print("Torch version", torch.__version__)
 
 # this example optimises ZDT2, 2 objectives and 6 dimensions
-# the objectives have heterogenous costs of 3 and 1 respectively 
+# the objectives have heterogenous costs of 3 and 1 respectively
 
 from botorch.test_functions.multi_objective import ZDT2
 from botorch.models.cost import FixedCostModel
@@ -26,7 +26,7 @@ from botorch.models.cost import FixedCostModel
 problem = ZDT2(negate=True, dim=6).to(**tkwargs)
 
 # define the cost model
-#TODO these costs will need to be changed when I set this up for HydroShield
+# TODO these costs will need to be changed when I set this up for HydroShield
 objective_costs = {0: 3.0, 1: 1.0}
 objective_indices = list(objective_costs.keys())
 objective_costs = {int(k): v for k, v in objective_costs.items()}
@@ -49,6 +49,7 @@ from gpytorch.priors import GammaPrior
 from gpytorch.kernels import MaternKernel, ScaleKernel
 
 # generating the initial training data - i can replace this with LHS generation
+
 
 def generate_initial_data(n):
     # generate training data
@@ -77,13 +78,12 @@ def initialize_model(train_x_list, train_obj_list):
                         lengthscale_prior=GammaPrior(2.0, 2.0),
                     ),
                     outputscale_prior=GammaPrior(2.0, 0.15),
-                )
+                ),
             )
         )
     model = ModelListGP(*models)
     mll = SumMarginalLogLikelihood(model.likelihood, model)
     return mll, model
-
 
 
 # i believe this helper function is for the non-decoupled case, so I will not be using it
@@ -128,7 +128,7 @@ standard_bounds[1] = 1
 #     return new_x, new_obj_true
 
 
-'''
+"""
 Below we define the following helper functions:
 
 get_current_value for computing the current hypervolume of the hypervolume maximizing 
@@ -138,7 +138,7 @@ optimize_HVKG_and_get_obs_decoupled to initialize and optimize HVKG to determine
     design to evaluate and which objective to evaluate the design on. This method obtains 
     the observation corresponding to that design.
 
-'''
+"""
 
 from botorch.acquisition.cost_aware import InverseCostWeightedUtility
 from botorch.acquisition.multi_objective.hypervolume_knowledge_gradient import (
@@ -235,12 +235,11 @@ def optimize_HVKG_and_get_obs_decoupled(model):
     return new_x, new_obj, eval_objective_indices
 
 
-
-# define function to find model-estimated pareto set of 
+# define function to find model-estimated pareto set of
 # designs under posterior mean using NSGA-II
 
-# this is just to compare the estimated HV in each iteration to an analytical pareto front 
-# to compare regrets between optimisers. 
+# this is just to compare the estimated HV in each iteration to an analytical pareto front
+# to compare regrets between optimisers.
 
 
 import numpy as np
@@ -254,6 +253,7 @@ try:
     from pymoo.algorithms.moo.nsga2 import NSGA2
     from pymoo.core.problem import Problem
     from pymoo.optimize import minimize
+
     # from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
     def get_model_identified_hv_maximizing_set(
@@ -302,7 +302,7 @@ try:
         res = minimize(
             pymoo_problem,
             algorithm,
-            termination=('n_gen', max_gen),
+            termination=("n_gen", max_gen),
             # seed=0,  # fix seed
             verbose=False,
         )
@@ -346,11 +346,9 @@ except ImportError:
         # compute HV
         partitioning = FastNondominatedPartitioning(ref_point=problem.ref_point, Y=Y)
         return partitioning.compute_hypervolume().item()
-    
 
 
-
-'''
+"""
 comparing BO using HVKG vs non-decoupled qNEHVI
 
 The Bayesian optimization "loop" for a batch size of 1 simply iterates the following steps:
@@ -359,7 +357,7 @@ given a surrogate model, choose a candidate design and objective to evaluate (fo
 observe one or more objectives for the candidate design.
 update the surrogate model.
 
-'''
+"""
 
 import time
 import warnings
@@ -411,8 +409,7 @@ hv = get_model_identified_hv_maximizing_set(model=model_hvkg)
 hvs_hvkg = [hv]
 if verbose:
     print(
-        f"\nInitial: Hypervolume (qHVKG) = "
-        f"({hvs_hvkg[-1]:>4.2f}).",
+        f"\nInitial: Hypervolume (qHVKG) = " f"({hvs_hvkg[-1]:>4.2f}).",
         end="",
     )
 # run N_BATCH rounds of BayesOpt after the initial random batch
@@ -430,7 +427,7 @@ while any(v < COST_BUDGET for v in total_cost.values()):
         ) = optimize_HVKG_and_get_obs_decoupled(
             model_hvkg,
         )
-        print('eval objectives: ', eval_objective_indices_hvkg)
+        print("eval objectives: ", eval_objective_indices_hvkg)
         # update training points
         for i in eval_objective_indices_hvkg:
             train_x_hvkg_list[i] = torch.cat([train_x_hvkg_list[i], new_x_hvkg])
