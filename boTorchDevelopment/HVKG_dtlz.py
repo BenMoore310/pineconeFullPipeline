@@ -160,7 +160,7 @@ def initialize_model(train_x_list, train_obj_list):
             )
         )
     model = ModelListGP(*models)
-    print(model)
+    # print(model)
     mll = SumMarginalLogLikelihood(model.likelihood, model)
     return mll, model
 
@@ -330,73 +330,84 @@ from botorch.utils.multi_objective.pareto import _is_non_dominated_loop
 from gpytorch import settings
 
 # try:
-#     from pymoo.algorithms.moo.nsga2 import NSGA2
-#     from pymoo.core.problem import Problem
-#     from pymoo.optimize import minimize
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.core.problem import Problem
+from pymoo.optimize import minimize
 
-#     # from pymoo.util.termination.max_gen import MaximumGenerationTermination
+# from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
-#     def get_model_identified_hv_maximizing_set(
-#         model,
-#         population_size=50,
-#         max_gen=50,
-#     ):
-#         """Optimize the posterior mean using NSGA-II."""
-#         # tkwargs = {
-#         #     "dtype": problem.ref_point.dtype,
-#         #     "device": problem.ref_point.device,
-#         # }
-#         dim = len(bounds)
-#         # since its bounds for each feature this gives the dimensionality of the feature landscape
+def get_model_identified_hv_maximizing_set(
+    model,
+    population_size=50,
+    max_gen=50,
+):
+    """Optimize the posterior mean using NSGA-II."""
+    # tkwargs = {
+    #     "dtype": problem.ref_point.dtype,
+    #     "device": problem.ref_point.device,
+    # }
+    dim = len(bounds)
+    # since its bounds for each feature this gives the dimensionality of the feature landscape
 
-#         class PosteriorMeanPymooProblem(Problem):
-#             def __init__(self):
-#                 super().__init__(
-#                     n_var=dim,
-#                     n_obj=2,
-#                     type_var=np.double,
-#                 )
-#                 self.xl = np.zeros(dim)
-#                 self.xu = np.ones(dim)
+    class PosteriorMeanPymooProblem(Problem):
+        def __init__(self):
+            super().__init__(
+                n_var=dim,
+                n_obj=2,
+                type_var=np.double,
+            )
+            self.xl = np.zeros(dim)
+            self.xu = np.ones(dim)
 
-#             def _evaluate(self, x, out, *args, **kwargs):
-#                 X = torch.from_numpy(x).to(**tkwargs)
-#                 is_fantasy_model = (
-#                     isinstance(model, ModelListGP)
-#                     and model.models[0].train_targets.ndim > 2
-#                 ) or (
-#                     not isinstance(model, ModelListGP) and model.train_targets.ndim > 2
-#                 )
-#                 with torch.no_grad():
-#                     with settings.cholesky_max_tries(9):
-#                         # eval in batch mode
-#                         y = model.posterior(X.unsqueeze(-2)).mean.squeeze(-2)
-#                     if is_fantasy_model:
-#                         y = y.mean(dim=-2)
-#                 out["F"] = -y.cpu().numpy()
+        def _evaluate(self, x, out, *args, **kwargs):
+            X = torch.from_numpy(x).to(**tkwargs)
+            is_fantasy_model = (
+                isinstance(model, ModelListGP)
+                and model.models[0].train_targets.ndim > 2
+            ) or (
+                not isinstance(model, ModelListGP) and model.train_targets.ndim > 2
+            )
+            with torch.no_grad():
+                with settings.cholesky_max_tries(9):
+                    # eval in batch mode
+                    y = model.posterior(X.unsqueeze(-2)).mean.squeeze(-2)
+                    var = model.posterior(X.unsqueeze(-2)).variance.squeeze(-2)
+                    std = var.sqrt()
+                if is_fantasy_model:
+                    y = y.mean(dim=-2)
+                    std = std.mean(dim=-2)
+            out["F"] = y.cpu().numpy()
+            out["uncertainty"] = std.cpu().numpy() #stores the predictive uncertainty
 
-#         pymoo_problem = PosteriorMeanPymooProblem()
-#         algorithm = NSGA2(
-#             pop_size=population_size,
-#             eliminate_duplicates=True,
-#         )
-#         res = minimize(
-#             pymoo_problem,
-#             algorithm,
-#             termination=("n_gen", max_gen),
-#             # seed=0,  # fix seed
-#             verbose=False,
-#         )
-#         X = torch.tensor(
-#             res.X,
-#             **tkwargs,
-#         )
-#         X = unnormalize(X, bounds_reversed)
-#         print(X, X.shape)
-#         Y = problem(X)
-#         # compute HV
-#         partitioning = FastNondominatedPartitioning(ref_point=problem.ref_point, Y=Y)
-#         return partitioning.compute_hypervolume().item()
+    pymoo_problem = PosteriorMeanPymooProblem()
+    algorithm = NSGA2(
+        pop_size=population_size,
+        eliminate_duplicates=True,
+    )
+    res = minimize(
+        pymoo_problem,
+        algorithm,
+        termination=("n_gen", max_gen),
+        # seed=0,  # fix seed
+        verbose=False,
+    )
+
+
+    X = torch.tensor(
+        res.X,
+        **tkwargs,
+    )
+    X = unnormalize(X, bounds_reversed)
+    # print(X, X.shape)
+    # Y = problem(X)
+    Y = torch.Tensor(res.F)
+
+    std = torch.Tensor(res.pop.get("uncertainty"))
+    # print("std shape:", std.shape)
+    # print(Y, Y.shape)
+    # compute HV
+    partitioning = FastNondominatedPartitioning(ref_point=torch.from_numpy(np.array((1.75, 1.75))), Y=Y)
+    return partitioning.compute_hypervolume().item(), X, Y, std
 
 # except ImportError:
 #     NUM_DISCRETE_POINTS = 100 if SMOKE_TEST else 100000
@@ -486,16 +497,25 @@ total_cost["hvkg"] += cost_hvkg.sum().item()
 fit_gpytorch_mll(mll_hvkg)
 # fit_gpytorch_mll(mll_qnehvi)
 # fit_gpytorch_mll(mll_random)
+
+iteration = 0
+
 # compute hypervolume
-# hv = get_model_identified_hv_maximizing_set(model=model_hvkg)
-# hvs_hvkg = [hv]
+hv, features, targets, stddv = get_model_identified_hv_maximizing_set(model=model_hvkg)
+
+np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
+np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
+np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
+
+
+
+hvs_hvkg = [hv]
 # if verbose:
 #     print(
 #         f"\nInitial: Hypervolume (qHVKG) = " f"({hvs_hvkg[-1]:>4.2f}).",
 #         end="",
 #     )
 # run N_BATCH rounds of BayesOpt after the initial random batch
-iteration = 0
 active_algos = {k for k, v in total_cost.items() if v < COST_BUDGET}
 while any(v < COST_BUDGET for v in total_cost.values()):
 
@@ -568,17 +588,17 @@ while any(v < COST_BUDGET for v in total_cost.values()):
     #     fit_gpytorch_mll(mll_random)
 
     # compute hypervolume
-    # for label, model, hv_list in zip(
-    #     ["hvkg"],
-    #     [model_hvkg],
-    #     [hvs_hvkg],
-    # ):
-    #     if label in active_algos:
-    #         hv = get_model_identified_hv_maximizing_set(model=model)
-    #         hv_list.append(hv)
-    #     else:
-    #         # no update performed
-    #         hv_list.append(hv_list[-1])
+    for label, model, hv_list in zip(
+        ["hvkg"],
+        [model_hvkg],
+        [hvs_hvkg],
+    ):
+        if label in active_algos:
+            hv = get_model_identified_hv_maximizing_set(model=model)
+            hv_list.append(hv)
+        else:
+            # no update performed
+            hv_list.append(hv_list[-1])
 
     # t1 = time.monotonic()
     # if verbose:
@@ -595,7 +615,20 @@ while any(v < COST_BUDGET for v in total_cost.values()):
     # else:
     #     print(".", end="")
 
-    np.savetxt('HVKGTargets.txt', torch.Tensor.numpy(train_obj_hvkg_list))
+    # for each list in train_objv_hvkg_list, save the list as a text file
+    for i, train_objv_hvkg in enumerate(train_obj_hvkg_list):
+        np.savetxt(
+            f"train_obj_hvkg_{i}.txt",
+            train_objv_hvkg.cpu().numpy(),
+            delimiter=",",
+        )
+
+
+
 
     iteration += 1
+    np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
+    np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
+    np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
+
     active_algos = {k for k, v in total_cost.items() if v < COST_BUDGET}
