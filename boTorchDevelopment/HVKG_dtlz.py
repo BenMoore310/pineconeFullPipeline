@@ -264,13 +264,13 @@ def optimize_HVKG_and_get_obs_decoupled(model):
 
     current_value = get_current_value(
         model=model,
-        ref_point=torch.from_numpy(np.array((1.75, 1.75))),  # use known reference point
+        ref_point=torch.from_numpy(np.array((-1.75, -1.75))),  # use known reference point
         bounds=standard_bounds,
     )
 
     acq_func = qHypervolumeKnowledgeGradient(
         model=model,
-        ref_point=torch.from_numpy(np.array((1.75, 1.75))),  # use known reference point
+        ref_point=torch.from_numpy(np.array((-1.75, -1.75))),  # use known reference point
         num_fantasies=NUM_FANTASIES,
         num_pareto=NUM_PARETO,
         current_value=current_value,
@@ -304,7 +304,7 @@ def optimize_HVKG_and_get_obs_decoupled(model):
         objective_candidates.append(candidates)
     best_objective_index = torch.cat(objective_vals, dim=-1).argmax().item()
     eval_objective_indices = [best_objective_index]
-    print(eval_objective_indices)
+    print(', Evaluated Objective = ', eval_objective_indices)
     candidates = objective_candidates[best_objective_index]
     vals = objective_vals[best_objective_index]
     # observe new values
@@ -376,7 +376,7 @@ def get_model_identified_hv_maximizing_set(
                 if is_fantasy_model:
                     y = y.mean(dim=-2)
                     std = std.mean(dim=-2)
-            out["F"] = y.cpu().numpy()
+            out["F"] = -y.cpu().numpy()
             out["uncertainty"] = std.cpu().numpy() #stores the predictive uncertainty
 
     pymoo_problem = PosteriorMeanPymooProblem()
@@ -406,7 +406,7 @@ def get_model_identified_hv_maximizing_set(
     # print("std shape:", std.shape)
     # print(Y, Y.shape)
     # compute HV
-    partitioning = FastNondominatedPartitioning(ref_point=torch.from_numpy(np.array((1.75, 1.75))), Y=Y)
+    partitioning = FastNondominatedPartitioning(ref_point=torch.from_numpy(np.array((-1.75, -1.75))), Y=Y)
     return partitioning.compute_hypervolume().item(), X, Y, std
 
 # except ImportError:
@@ -510,11 +510,11 @@ np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tens
 
 
 hvs_hvkg = [hv]
-# if verbose:
-#     print(
-#         f"\nInitial: Hypervolume (qHVKG) = " f"({hvs_hvkg[-1]:>4.2f}).",
-#         end="",
-#     )
+if verbose:
+    print(
+        f"\nInitial: Hypervolume (qHVKG) = " f"({hvs_hvkg[-1]:>4.2f}).\n",
+        end="",
+    )
 # run N_BATCH rounds of BayesOpt after the initial random batch
 active_algos = {k for k, v in total_cost.items() if v < COST_BUDGET}
 while any(v < COST_BUDGET for v in total_cost.values()):
@@ -536,8 +536,8 @@ while any(v < COST_BUDGET for v in total_cost.values()):
             train_obj_hvkg_list[i] = torch.cat(
                 [train_obj_hvkg_list[i], new_obj_hvkg], dim=0
             )
-        print(train_obj_hvkg_list[0].shape)
-        print(train_obj_hvkg_list[1].shape)
+        # print(train_obj_hvkg_list[0].shape)
+        # print(train_obj_hvkg_list[1].shape)
         # update costs
         all_outcome_cost = cost_model(new_x_hvkg)
         new_cost_hvkg = all_outcome_cost[..., eval_objective_indices_hvkg].sum(dim=-1)
@@ -594,31 +594,31 @@ while any(v < COST_BUDGET for v in total_cost.values()):
         [hvs_hvkg],
     ):
         if label in active_algos:
-            hv = get_model_identified_hv_maximizing_set(model=model)
+            hv, features, targets, stddv = get_model_identified_hv_maximizing_set(model=model)
             hv_list.append(hv)
         else:
             # no update performed
             hv_list.append(hv_list[-1])
-
-    # t1 = time.monotonic()
-    # if verbose:
-    #     print(
-    #         f"\nBatch {iteration:>2}: Costs (qHVKG) = "
-    #         f"({total_cost['hvkg']:>4.2f}). "
-    #     )
-    #     print(
-    #         f"\nHypervolume (qHVKG) = "
-    #         f"({hvs_hvkg[-1]:>4.2f}), "
-    #         f"time = {t1-t0:>4.2f}.",
-    #         end="",
-    #     )
-    # else:
-    #     print(".", end="")
+    
+    t1 = time.monotonic()
+    if verbose:
+        print(
+            f"\nBatch {iteration:>2}: Costs (qHVKG) = "
+            f"({total_cost['hvkg']:>4.2f}). "
+        )
+        print(
+            f"\nHypervolume (qHVKG) = ",
+            f"({hvs_hvkg[-1]:>4.2f}), ",
+            f"time = {t1-t0:>4.2f}.",
+            end="",
+        )
+    else:
+        print(".", end="")
 
     # for each list in train_objv_hvkg_list, save the list as a text file
     for i, train_objv_hvkg in enumerate(train_obj_hvkg_list):
         np.savetxt(
-            f"train_obj_hvkg_{i}.txt",
+            f"objtv{i}/train_obj_hvkg_{iteration}.txt",
             train_objv_hvkg.cpu().numpy(),
             delimiter=",",
         )

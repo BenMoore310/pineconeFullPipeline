@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+import glob
 # read in each iteration's features, targets, and std
-for iteration in range(10):  # assuming 10 iterations
+
+filesList = glob.glob('modelParetoFronts/features/*')
+
+
+for iteration in range(len(filesList)):  
     features = np.loadtxt(f"modelParetoFronts/features/featuresIter{iteration}.txt")
     targets = np.loadtxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt")
     std = np.loadtxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt")
@@ -24,7 +28,7 @@ for iteration in range(10):  # assuming 10 iterations
 # load in all saved figures and generate an animated GIF
 import imageio
 images = []
-for iteration in range(10):
+for iteration in range(len(filesList)):
     images.append(imageio.imread(f"modelParetoFronts/paretoPlots/iteration_{iteration}.png"))
 imageio.mimsave('pareto_animation.gif', images, duration=1)   
 # print completion message
