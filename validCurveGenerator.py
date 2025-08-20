@@ -278,7 +278,7 @@ def main(num_basis, paramsFile, weightingType="random", resolution=50):
             second_delete.append(i)
 
     offset_coordinates = np.delete(offset_coordinates, second_delete, 0)
-        
+
     np.savetxt("runDirectory/spline.txt", curve)
 
     np.savetxt("runDirectory/offset_spline.txt", np.flip(offset_coordinates, axis=0))

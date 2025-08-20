@@ -8,8 +8,9 @@ import torch
 
 import pymoo
 from pymoo.problems import get_problem
-from scipy.stats import qmc 
+from scipy.stats import qmc
 import numpy as np
+
 
 def getPyMooProblem(function, n_var, n_obj):
 
@@ -24,13 +25,13 @@ def getPyMooProblem(function, n_var, n_obj):
 
     return problem, np.array(bounds)
 
+
 def evalPyMooProblem(function, vec):
 
     result = function.evaluate(vec)
     # result = np.append(result, [0])
 
     return result * -1
-
 
 
 tkwargs = {
@@ -88,9 +89,9 @@ print("Problem bounds shape:", bounds.shape)
 bounds_reversed = bounds.T
 print("Reversed bounds shape:", bounds_reversed.shape)
 
+
 def generate_initial_data(n):
     # generate training data
-
 
     initSampleSize = n
     # bounds = np.array(value)
@@ -109,16 +110,15 @@ def generate_initial_data(n):
     # Requires evaluating initial population
     train_obj_true = np.empty((0, 2))  # Assuming 2 objectives
 
-
     for i in range(initSampleSize):
 
         newObjvTgt = evalPyMooProblem(problem, train_x[i, :])
-        
+
         train_obj_true = np.vstack((train_obj_true, newObjvTgt))
 
     print("Initial Population:")
     print(train_x)
-    print("initial targets:\n", train_obj_true )
+    print("initial targets:\n", train_obj_true)
 
     train_obj_true = torch.from_numpy(train_obj_true)
     train_x = torch.from_numpy(train_x)
@@ -264,13 +264,17 @@ def optimize_HVKG_and_get_obs_decoupled(model):
 
     current_value = get_current_value(
         model=model,
-        ref_point=torch.from_numpy(np.array((-1.75, -1.75))),  # use known reference point
+        ref_point=torch.from_numpy(
+            np.array((-1.75, -1.75))
+        ),  # use known reference point
         bounds=standard_bounds,
     )
 
     acq_func = qHypervolumeKnowledgeGradient(
         model=model,
-        ref_point=torch.from_numpy(np.array((-1.75, -1.75))),  # use known reference point
+        ref_point=torch.from_numpy(
+            np.array((-1.75, -1.75))
+        ),  # use known reference point
         num_fantasies=NUM_FANTASIES,
         num_pareto=NUM_PARETO,
         current_value=current_value,
@@ -304,7 +308,7 @@ def optimize_HVKG_and_get_obs_decoupled(model):
         objective_candidates.append(candidates)
     best_objective_index = torch.cat(objective_vals, dim=-1).argmax().item()
     eval_objective_indices = [best_objective_index]
-    print(', Evaluated Objective = ', eval_objective_indices)
+    print(", Evaluated Objective = ", eval_objective_indices)
     candidates = objective_candidates[best_objective_index]
     vals = objective_vals[best_objective_index]
     # observe new values
@@ -336,6 +340,7 @@ from pymoo.optimize import minimize
 
 # from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
+
 def get_model_identified_hv_maximizing_set(
     model,
     population_size=50,
@@ -364,9 +369,7 @@ def get_model_identified_hv_maximizing_set(
             is_fantasy_model = (
                 isinstance(model, ModelListGP)
                 and model.models[0].train_targets.ndim > 2
-            ) or (
-                not isinstance(model, ModelListGP) and model.train_targets.ndim > 2
-            )
+            ) or (not isinstance(model, ModelListGP) and model.train_targets.ndim > 2)
             with torch.no_grad():
                 with settings.cholesky_max_tries(9):
                     # eval in batch mode
@@ -377,7 +380,7 @@ def get_model_identified_hv_maximizing_set(
                     y = y.mean(dim=-2)
                     std = std.mean(dim=-2)
             out["F"] = -y.cpu().numpy()
-            out["uncertainty"] = std.cpu().numpy() #stores the predictive uncertainty
+            out["uncertainty"] = std.cpu().numpy()  # stores the predictive uncertainty
 
     pymoo_problem = PosteriorMeanPymooProblem()
     algorithm = NSGA2(
@@ -392,7 +395,6 @@ def get_model_identified_hv_maximizing_set(
         verbose=False,
     )
 
-
     X = torch.tensor(
         res.X,
         **tkwargs,
@@ -406,8 +408,11 @@ def get_model_identified_hv_maximizing_set(
     # print("std shape:", std.shape)
     # print(Y, Y.shape)
     # compute HV
-    partitioning = FastNondominatedPartitioning(ref_point=torch.from_numpy(np.array((-1.75, -1.75))), Y=Y)
+    partitioning = FastNondominatedPartitioning(
+        ref_point=torch.from_numpy(np.array((-1.75, -1.75))), Y=Y
+    )
     return partitioning.compute_hypervolume().item(), X, Y, std
+
 
 # except ImportError:
 #     NUM_DISCRETE_POINTS = 100 if SMOKE_TEST else 100000
@@ -503,10 +508,16 @@ iteration = 0
 # compute hypervolume
 hv, features, targets, stddv = get_model_identified_hv_maximizing_set(model=model_hvkg)
 
-np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
-np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
-np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
-
+np.savetxt(
+    f"modelParetoFronts/features/featuresIter{iteration}.txt",
+    torch.Tensor.numpy(features),
+)
+np.savetxt(
+    f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets)
+)
+np.savetxt(
+    f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv)
+)
 
 
 hvs_hvkg = [hv]
@@ -594,12 +605,14 @@ while any(v < COST_BUDGET for v in total_cost.values()):
         [hvs_hvkg],
     ):
         if label in active_algos:
-            hv, features, targets, stddv = get_model_identified_hv_maximizing_set(model=model)
+            hv, features, targets, stddv = get_model_identified_hv_maximizing_set(
+                model=model
+            )
             hv_list.append(hv)
         else:
             # no update performed
             hv_list.append(hv_list[-1])
-    
+
     t1 = time.monotonic()
     if verbose:
         print(
@@ -623,12 +636,18 @@ while any(v < COST_BUDGET for v in total_cost.values()):
             delimiter=",",
         )
 
-
-
-
     iteration += 1
-    np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
-    np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
-    np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
+    np.savetxt(
+        f"modelParetoFronts/features/featuresIter{iteration}.txt",
+        torch.Tensor.numpy(features),
+    )
+    np.savetxt(
+        f"modelParetoFronts/targets/targetsIter{iteration}.txt",
+        torch.Tensor.numpy(targets),
+    )
+    np.savetxt(
+        f"modelParetoFronts/uncertainties/stdIter{iteration}.txt",
+        torch.Tensor.numpy(stddv),
+    )
 
     active_algos = {k for k, v in total_cost.items() if v < COST_BUDGET}

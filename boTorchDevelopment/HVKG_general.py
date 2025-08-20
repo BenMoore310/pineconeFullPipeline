@@ -2,7 +2,7 @@ import os
 import torch
 import pymoo
 from pymoo.problems import get_problem
-from scipy.stats import qmc 
+from scipy.stats import qmc
 import numpy as np
 from botorch.test_functions.multi_objective import ZDT2
 from botorch.models.cost import FixedCostModel
@@ -41,6 +41,7 @@ import warnings
 from botorch import fit_gpytorch_mll
 from botorch.exceptions import BadInitialCandidatesWarning
 from botorch.sampling.normal import SobolQMCNormalSampler
+
 warnings.filterwarnings("ignore", category=BadInitialCandidatesWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 import argparse
@@ -50,6 +51,7 @@ tkwargs = {
     "dtype": torch.double,
     "device": torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 }
+
 
 class HVKG:
     def __init__(self, function, n_var, n_obj, refVectorValue):
@@ -89,11 +91,8 @@ class HVKG:
 
         return result * -1
 
-
-
     def generate_initial_data(self, n):
         # generate training data
-
 
         initSampleSize = n
         # bounds = np.array(value)
@@ -112,16 +111,15 @@ class HVKG:
         # Requires evaluating initial population
         train_obj_true = np.empty((0, self.n_obj))  # Assuming 2 objectives
 
-
         for i in range(initSampleSize):
 
             newObjvTgt = self.evalPyMooProblem(train_x[i, :])
-            
+
             train_obj_true = np.vstack((train_obj_true, newObjvTgt))
 
         print("Initial Population:")
         print(train_x)
-        print("initial targets:\n", train_obj_true )
+        print("initial targets:\n", train_obj_true)
 
         train_obj_true = torch.from_numpy(train_obj_true)
         train_x = torch.from_numpy(train_x)
@@ -129,7 +127,6 @@ class HVKG:
         # train_x = draw_sobol_samples(bounds=problem.bounds, n=n, q=1).squeeze(1)
         # train_obj_true = problem(train_x)
         return train_x, train_obj_true
-
 
     def initialize_model(self, train_x_list, train_obj_list):
         # define models for objective and constraint
@@ -141,7 +138,9 @@ class HVKG:
 
         # print(problem.bounds)
         # print(problem.bounds.shape)
-        train_x_list = [normalize(train_x, self.bounds_reversed) for train_x in train_x_list]
+        train_x_list = [
+            normalize(train_x, self.bounds_reversed) for train_x in train_x_list
+        ]
         models = []
         for i in range(len(train_obj_list)):
             train_y = train_obj_list[i]
@@ -166,8 +165,6 @@ class HVKG:
         # print(model)
         mll = SumMarginalLogLikelihood(model.likelihood, model)
         return mll, model
-
-
 
     def get_current_value(
         self,
@@ -194,8 +191,9 @@ class HVKG:
         )
         return current_value
 
-
-    def optimize_HVKG_and_get_obs_decoupled(self, model, cost_model, standard_bounds, objective_indices):
+    def optimize_HVKG_and_get_obs_decoupled(
+        self, model, cost_model, standard_bounds, objective_indices
+    ):
         """Utility to initialize and optimize HVKG."""
         cost_aware_utility = InverseCostWeightedUtility(cost_model=cost_model)
 
@@ -241,7 +239,7 @@ class HVKG:
             objective_candidates.append(candidates)
         best_objective_index = torch.cat(objective_vals, dim=-1).argmax().item()
         eval_objective_indices = [best_objective_index]
-        print(', Evaluated Objective = ', eval_objective_indices)
+        print(", Evaluated Objective = ", eval_objective_indices)
         candidates = objective_candidates[best_objective_index]
         vals = objective_vals[best_objective_index]
         # observe new values
@@ -251,13 +249,11 @@ class HVKG:
         new_obj = new_obj[..., eval_objective_indices]
         return new_x, new_obj, eval_objective_indices
 
-
     # define function to find model-estimated pareto set of
     # designs under posterior mean using NSGA-II
 
     # this is just to compare the estimated HV in each iteration to an analytical pareto front
     # to compare regrets between optimisers.
-
 
     # from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
@@ -303,7 +299,9 @@ class HVKG:
                         y = y.mean(dim=-2)
                         std = std.mean(dim=-2)
                 out["F"] = -y.cpu().numpy()
-                out["uncertainty"] = std.cpu().numpy() #stores the predictive uncertainty
+                out["uncertainty"] = (
+                    std.cpu().numpy()
+                )  # stores the predictive uncertainty
 
         pymoo_problem = PosteriorMeanPymooProblem()
         algorithm = NSGA2(
@@ -318,7 +316,6 @@ class HVKG:
             verbose=False,
         )
 
-
         X = torch.tensor(
             res.X,
             **tkwargs,
@@ -332,14 +329,12 @@ class HVKG:
         # print("std shape:", std.shape)
         # print(Y, Y.shape)
         # compute HV
-        partitioning = FastNondominatedPartitioning(ref_point=torch.from_numpy(self.refVector), Y=Y)
+        partitioning = FastNondominatedPartitioning(
+            ref_point=torch.from_numpy(self.refVector), Y=Y
+        )
         return partitioning.compute_hypervolume().item(), X, Y, std
 
-
-
     def optimise(self):
-
-
 
         print("Using device:", tkwargs["device"])
         print("Torch version", torch.__version__)
@@ -364,11 +359,8 @@ class HVKG:
         self.bounds_reversed = self.bounds.T
         print("Reversed bounds shape:", self.bounds_reversed.shape)
 
-
-
         standard_bounds = torch.zeros(2, len(self.bounds), **tkwargs)
         standard_bounds[1] = 1
-
 
         torch.manual_seed(0)
         verbose = True
@@ -377,13 +369,14 @@ class HVKG:
         # total_cost = {"hvkg": 0.0, "qnehvi": 0.0, "random": 0.0}
         total_cost = {"hvkg": 0.0}
 
-
         # call helper functions to generate initial training data and initialize model
         train_x_hvkg, train_obj_hvkg = self.generate_initial_data(n=N_INIT)
         train_obj_hvkg_list = list(train_obj_hvkg.split(1, dim=-1))
         print(train_obj_hvkg_list)
         train_x_hvkg_list = [train_x_hvkg] * len(train_obj_hvkg_list)
-        mll_hvkg, model_hvkg = self.initialize_model(train_x_hvkg_list, train_obj_hvkg_list)
+        mll_hvkg, model_hvkg = self.initialize_model(
+            train_x_hvkg_list, train_obj_hvkg_list
+        )
 
         cost_hvkg = cost_model(train_x_hvkg).sum(dim=-1)
         total_cost["hvkg"] += cost_hvkg.sum().item()
@@ -391,17 +384,25 @@ class HVKG:
         # fit the models
         fit_gpytorch_mll(mll_hvkg)
 
-
         iteration = 0
 
         # compute hypervolume
-        hv, features, targets, stddv = self.get_model_identified_hv_maximizing_set(model=model_hvkg)
+        hv, features, targets, stddv = self.get_model_identified_hv_maximizing_set(
+            model=model_hvkg
+        )
 
-        np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
-        np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
-        np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
-
-
+        np.savetxt(
+            f"modelParetoFronts/features/featuresIter{iteration}.txt",
+            torch.Tensor.numpy(features),
+        )
+        np.savetxt(
+            f"modelParetoFronts/targets/targetsIter{iteration}.txt",
+            torch.Tensor.numpy(targets),
+        )
+        np.savetxt(
+            f"modelParetoFronts/uncertainties/stdIter{iteration}.txt",
+            torch.Tensor.numpy(stddv),
+        )
 
         hvs_hvkg = [hv]
         if verbose:
@@ -424,7 +425,7 @@ class HVKG:
                     model_hvkg,
                     cost_model=cost_model,
                     standard_bounds=standard_bounds,
-                    objective_indices=objective_indices
+                    objective_indices=objective_indices,
                 )
                 # print("eval objectives: ", eval_objective_indices_hvkg)
                 # update training points
@@ -437,11 +438,15 @@ class HVKG:
                 # print(train_obj_hvkg_list[1].shape)
                 # update costs
                 all_outcome_cost = cost_model(new_x_hvkg)
-                new_cost_hvkg = all_outcome_cost[..., eval_objective_indices_hvkg].sum(dim=-1)
+                new_cost_hvkg = all_outcome_cost[..., eval_objective_indices_hvkg].sum(
+                    dim=-1
+                )
                 cost_hvkg = torch.cat([cost_hvkg, new_cost_hvkg], dim=0)
                 total_cost["hvkg"] += new_cost_hvkg.sum().item()
                 # fit models
-                mll_hvkg, model_hvkg =self.initialize_model(train_x_hvkg_list, train_obj_hvkg_list)
+                mll_hvkg, model_hvkg = self.initialize_model(
+                    train_x_hvkg_list, train_obj_hvkg_list
+                )
                 fit_gpytorch_mll(mll_hvkg)
 
             # compute hypervolume
@@ -451,12 +456,14 @@ class HVKG:
                 [hvs_hvkg],
             ):
                 if label in active_algos:
-                    hv, features, targets, stddv = self.get_model_identified_hv_maximizing_set(model=model)
+                    hv, features, targets, stddv = (
+                        self.get_model_identified_hv_maximizing_set(model=model)
+                    )
                     hv_list.append(hv)
                 else:
                     # no update performed
                     hv_list.append(hv_list[-1])
-            
+
             t1 = time.monotonic()
             if verbose:
                 print(
@@ -480,21 +487,27 @@ class HVKG:
                     delimiter=",",
                 )
 
-
-
-
             iteration += 1
-            np.savetxt(f"modelParetoFronts/features/featuresIter{iteration}.txt", torch.Tensor.numpy(features))
-            np.savetxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt", torch.Tensor.numpy(targets))
-            np.savetxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt", torch.Tensor.numpy(stddv))
+            np.savetxt(
+                f"modelParetoFronts/features/featuresIter{iteration}.txt",
+                torch.Tensor.numpy(features),
+            )
+            np.savetxt(
+                f"modelParetoFronts/targets/targetsIter{iteration}.txt",
+                torch.Tensor.numpy(targets),
+            )
+            np.savetxt(
+                f"modelParetoFronts/uncertainties/stdIter{iteration}.txt",
+                torch.Tensor.numpy(stddv),
+            )
 
             active_algos = {k for k, v in total_cost.items() if v < self.COST_BUDGET}
-
 
 
 def main(function, refVectorValue):
     hvkg = HVKG(function=function, n_var=6, n_obj=2, refVectorValue=refVectorValue)
     hvkg.optimise()
+
 
 if __name__ == "__main__":
 
