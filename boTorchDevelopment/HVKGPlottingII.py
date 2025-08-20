@@ -6,8 +6,8 @@ import glob
 
 filesList = glob.glob('modelParetoFronts/features/*')
 
-
-for iteration in range(len(filesList)):  
+print('Total Iterations = ', len(filesList))
+for iteration in range(len(filesList)-5):  
     features = np.loadtxt(f"modelParetoFronts/features/featuresIter{iteration}.txt")
     targets = np.loadtxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt")
     std = np.loadtxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt")
@@ -32,13 +32,13 @@ for iteration in range(len(filesList)):
     ax_top.set_title(f'Iteration {iteration} - NSGAII Pareto Front')
     ax_top.set_xlabel('Objective 1')
     ax_top.set_ylabel('Objective 2')
-    ax_top.set_xlim(-0.2, 1.75)
-    ax_top.set_ylim(-0.2, 1.75)
+    #ax_top.set_xlim(-0.2, 1.75)
+    #ax_top.set_ylim(-0.2, 1.75)
     # ax_top.plot([0, 1, 2], [0, 1, 0], label="NSGAII Pareto Front")
     # ax_top.legend()
 
-    objtv1 = np.loadtxt('objtv0/train_obj_hvkg_0.txt')
-    objtv2 = np.loadtxt('objtv1/train_obj_hvkg_1.txt')
+    #objtv1 = np.loadtxt('objtv0/train_obj_hvkg_0.txt')
+    #objtv2 = np.loadtxt('objtv1/train_obj_hvkg_1.txt')
 
     ax_bottom_left.plot(objtv1, marker='o', linestyle='--', color='blue')
     ax_bottom_left.set_xlabel("Iteration")
@@ -59,7 +59,7 @@ for iteration in range(len(filesList)):
 # load in all saved figures and generate an animated GIF
 import imageio
 images = []
-for iteration in range(len(filesList)):
+for iteration in range(len(filesList)-5):
     images.append(imageio.imread(f"modelParetoFronts/paretoPlots/iteration_{iteration}.png"))
 imageio.mimsave('pareto_animation.gif', images, duration=1)   
 # print completion message

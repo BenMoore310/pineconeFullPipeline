@@ -29,7 +29,7 @@ def evalPyMooProblem(function, vec):
     result = function.evaluate(vec)
     # result = np.append(result, [0])
 
-    return result
+    return result * -1
 
 
 
@@ -464,7 +464,7 @@ warnings.filterwarnings("ignore", category=BadInitialCandidatesWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 MC_SAMPLES = 128 if not SMOKE_TEST else 16
-COST_BUDGET = 90 if not SMOKE_TEST else 54
+COST_BUDGET = 110 if not SMOKE_TEST else 54
 torch.manual_seed(0)
 verbose = True
 N_INIT = 2 * len(bounds) + 1
