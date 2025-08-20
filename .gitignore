@@ -2,3 +2,9 @@ boTorchDevelopment/modelParetoFronts/features/*
 boTorchDevelopment/modelParetoFronts/paretoPlots/*
 boTorchDevelopment/modelParetoFronts/targets/*
 boTorchDevelopment/modelParetoFronts/uncertainties/*
+
+
+!boTorchDevelopment/modelParetoFronts/features/.gitkeep
+!boTorchDevelopment/modelParetoFronts/paretoPlots/.gitkeep
+!boTorchDevelopment/modelParetoFronts/targets/.gitkeep
+!boTorchDevelopment/modelParetoFronts/uncertainties/.gitkeep
