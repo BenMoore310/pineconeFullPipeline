@@ -372,11 +372,24 @@ class HVKG:
         # call helper functions to generate initial training data and initialize model
         train_x_hvkg, train_obj_hvkg = self.generate_initial_data(n=N_INIT)
         train_obj_hvkg_list = list(train_obj_hvkg.split(1, dim=-1))
-        print(train_obj_hvkg_list)
+        print('trainObjHvkgList  ', train_obj_hvkg_list)
         train_x_hvkg_list = [train_x_hvkg] * len(train_obj_hvkg_list)
         mll_hvkg, model_hvkg = self.initialize_model(
             train_x_hvkg_list, train_obj_hvkg_list
         )
+
+        # set the reference vector based on the worst targets in each list in train_obj_hvkg_list
+        self.refVector = 1.25 * torch.stack(
+            [train_obj_hvkg_list[i].min(dim=0).values for i in range(len(train_obj_hvkg_list))]
+        ).cpu().numpy()
+
+        # self.referenceVector needs to be of shape (2,)
+        if len(self.refVector.shape) > 1:
+            self.refVector = self.refVector.squeeze()
+        
+
+        print("Reference Vector:", self.refVector)
+
 
         cost_hvkg = cost_model(train_x_hvkg).sum(dim=-1)
         total_cost["hvkg"] += cost_hvkg.sum().item()
@@ -390,6 +403,10 @@ class HVKG:
         hv, features, targets, stddv = self.get_model_identified_hv_maximizing_set(
             model=model_hvkg
         )
+
+
+
+
 
         np.savetxt(
             f"modelParetoFronts/features/featuresIter{iteration}.txt",
@@ -434,6 +451,17 @@ class HVKG:
                     train_obj_hvkg_list[i] = torch.cat(
                         [train_obj_hvkg_list[i], new_obj_hvkg], dim=0
                     )
+
+                self.refVector = 1.25 * torch.stack(
+                    [train_obj_hvkg_list[i].min(dim=0).values for i in range(len(train_obj_hvkg_list))]
+                ).cpu().numpy()
+
+                # self.referenceVector needs to be of shape (2,)
+                if len(self.refVector.shape) > 1:
+                    self.refVector = self.refVector.squeeze()
+        
+
+                print("Reference Vector:", self.refVector)
                 # print(train_obj_hvkg_list[0].shape)
                 # print(train_obj_hvkg_list[1].shape)
                 # update costs
@@ -463,6 +491,7 @@ class HVKG:
                 else:
                     # no update performed
                     hv_list.append(hv_list[-1])
+
 
             t1 = time.monotonic()
             if verbose:

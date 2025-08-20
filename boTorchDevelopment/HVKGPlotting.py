@@ -10,12 +10,15 @@ import argparse
 
 def main(function):
 
-    ref_dirs = get_reference_directions("das-dennis", 2, n_partitions=20)
-    pf = get_problem(function).pareto_front(ref_dirs)
+    try:
 
-    # save the pareto front as a numpy array and plot it
-    pfArray = np.array(pf)
+        ref_dirs = get_reference_directions("das-dennis", 2, n_partitions=20)
+        pf = get_problem(function).pareto_front(ref_dirs)
 
+        # save the pareto front as a numpy array and plot it
+        pfArray = np.array(pf)
+    except TypeError:
+        pfArray = np.loadtxt('dtlz72.txt')
     # read in each iteration's features, targets, and std
 
     filesList = glob.glob("modelParetoFronts/features/*")
@@ -25,10 +28,11 @@ def main(function):
         features = np.loadtxt(f"modelParetoFronts/features/featuresIter{iteration}.txt")
         targets = np.loadtxt(f"modelParetoFronts/targets/targetsIter{iteration}.txt")
         std = np.loadtxt(f"modelParetoFronts/uncertainties/stdIter{iteration}.txt")
-
+        print(iteration)
         # plot targets with error bars
         plt.figure(figsize=(10, 10))
-        plt.errorbar(
+        try:
+            plt.errorbar(
             targets[:, 0],
             targets[:, 1],
             xerr=std[:, 0],
@@ -38,14 +42,17 @@ def main(function):
             capsize=5,
             errorevery=1,
         )
+        except ValueError:
+            plt.scatter(targets[:,0], targets[:,1])
+
         plt.scatter(
             pfArray[:, 0], pfArray[:, 1], c="black", marker="x", label="Pareto Front"
         )
         plt.title(f"Iteration {iteration} - Targets with Uncertainty")
         plt.xlabel("Objective 1")
         plt.ylabel("Objective 2")
-        # plt.xlim(-0.2, 1.5)
-        # plt.ylim(-0.2, 1.5)
+        #plt.xlim(-30, 250)
+        #plt.ylim(-30, 250)
         # plt.grid(True)
         plt.savefig(f"modelParetoFronts/paretoPlots/iteration_{iteration}.png")
         plt.close()
